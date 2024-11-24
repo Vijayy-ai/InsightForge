@@ -18,3 +18,4 @@ pdfkit>=1.0.0
 sqlalchemy==2.0.25
 requests==2.31.0
 # wkhtmltopdf-pack>=0.12.6
+python-docx>=0.8.11

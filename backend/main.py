@@ -6,7 +6,10 @@ from dotenv import load_dotenv
 import os
 import cohere
 from app.data_processors.processor import DataProcessor
-from app.report_generators.generator import ReportGenerator
+try:
+    from app.report_generators.generator import ReportGenerator
+except ModuleNotFoundError as e:
+    raise ImportError("Required module not found. Please ensure all dependencies are installed.") from e
 from typing import Dict, Any
 import base64
 

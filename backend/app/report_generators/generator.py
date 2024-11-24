@@ -15,6 +15,7 @@ from datetime import datetime
 import logging
 import os
 from pathlib import Path
+from docx import Document
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -94,6 +95,8 @@ class ReportGenerator:
                     content = self._generate_pdf_report(analysis, visualizations, data)
                 elif format == "html":
                     content = self._generate_html_report(analysis, visualizations, data)
+                elif format == "docx":
+                    content = self._generate_docx_report(analysis, visualizations, data)
             except Exception as e:
                 self.logger.error(f"Report formatting failed: {str(e)}")
                 raise ValueError(f"Report formatting failed: {str(e)}")
@@ -344,3 +347,18 @@ class ReportGenerator:
             self.logger.error(f"PDF generation failed: {str(e)}")
             self.logger.error(f"wkhtmltopdf path: {self.wkhtmltopdf_path}")
             raise Exception(f"PDF generation failed: {str(e)}")
+
+    def _generate_docx_report(self, analysis: str, visualizations: Dict[str, str], data: Dict[str, Any]) -> str:
+        """Generate DOCX report"""
+        doc = Document()
+        doc.add_heading('Data Analysis Report', level=1)
+        doc.add_heading('Analysis', level=2)
+        doc.add_paragraph(analysis)
+
+        # Add visualizations and metadata
+        # ...
+
+        # Save to a temporary file and return the path
+        temp_path = '/tmp/report.docx'
+        doc.save(temp_path)
+        return temp_path
