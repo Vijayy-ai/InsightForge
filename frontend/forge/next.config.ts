@@ -7,14 +7,10 @@ const nextConfig: NextConfig = {
 
   // API rewrites with environment-aware configuration
   async rewrites() {
-    // In development, use localhost
-    // In production, use the deployed API URL (to be updated after backend deployment)
     return [
       {
         source: '/api/:path*',
-        destination: process.env.NODE_ENV === 'production' 
-          ? 'https://insightforge-api.onrender.com/api/:path*'  // Update this after backend deployment
-          : 'http://localhost:8000/api/:path*',
+        destination: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/:path*',
       },
     ];
   },
@@ -31,18 +27,13 @@ const nextConfig: NextConfig = {
       {
         source: '/api/:path*',
         headers: [
-          // Allow all origins in development, and Vercel's default URL in production
           { 
             key: 'Access-Control-Allow-Origin', 
-            value: process.env.NODE_ENV === 'production' 
-              ? '*'  // Temporarily allow all origins until domain is set up
-              : '*'
+            value: '*'  // Allow all origins during development
           },
           { key: 'Access-Control-Allow-Methods', value: 'GET,POST,PUT,DELETE,OPTIONS' },
           { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'X-Frame-Options', value: 'DENY' },
-          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Access-Control-Allow-Credentials', value: 'true' },
         ],
       },
     ];
