@@ -1,0 +1,40 @@
+{
+  "name": "forge",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "next": "15.0.3",
+    "plotly.js-dist-min": "^2.24.2",
+    "react": "^18.3.1",
+    "react-chatbot-kit": "^2.2.2",
+    "react-dom": "^18.3.1",
+    "react-dropzone": "^14.2.3",
+    "react-icons": "^4.10.1",
+    "react-plotly.js": "^2.6.0",
+    "mysql2": "^3.6.0",
+    "mongodb": "^5.7.0",
+    "pg": "^8.11.3",
+    "@types/pg": "^8.10.2",
+    "@headlessui/react": "^1.7.17"
+  },
+  "devDependencies": {
+    "@types/axios": "^0.14.4",
+    "@types/node": "^20",
+    "@types/plotly.js": "^2.12.30",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/react-plotly.js": "^2.6.0",
+    "eslint": "^8",
+    "eslint-config-next": "15.0.3",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}
