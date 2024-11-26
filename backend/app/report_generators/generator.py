@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 from typing import Dict, Any, List, Optional, Union
 import pdfkit
-from jinja2 import Template
+from jinja2 import Template, Environment, FileSystemLoader
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -16,19 +16,26 @@ import logging
 import os
 from pathlib import Path
 from docx import Document
+from ..core.exceptions import ReportGenerationError
 
 # Configure logger
 logger = logging.getLogger(__name__)
 
 class ReportGenerator:
-    def __init__(self, cohere_client):
+    def __init__(self, cohere_client=None):
         self.co = cohere_client
         self.logger = logger
         
-        # Configure paths
-        self.wkhtmltopdf_path = os.getenv('WKHTMLTOPDF_PATH', r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe')
+        # Setup template environment
+        template_dir = Path(__file__).parent.parent / 'templates'
+        self.env = Environment(loader=FileSystemLoader(str(template_dir)))
         
-        # Configure PDF options
+        # Configure wkhtmltopdf path based on OS
+        if os.name == 'nt':  # Windows
+            self.wkhtmltopdf_path = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+        else:  # Linux/Mac
+            self.wkhtmltopdf_path = '/usr/local/bin/wkhtmltopdf'
+        
         self.pdf_options = {
             'page-size': 'A4',
             'margin-top': '0.75in',
@@ -37,8 +44,7 @@ class ReportGenerator:
             'margin-left': '0.75in',
             'encoding': "UTF-8",
             'no-outline': None,
-            'enable-local-file-access': None,
-            'quiet': None
+            'enable-local-file-access': None
         }
 
         # Configure plotly templates
@@ -88,70 +94,70 @@ class ReportGenerator:
             self.logger.error(f"Error creating Plotly figure: {str(e)}")
             raise ValueError(f"Failed to create visualization: {str(e)}")
 
-    async def generate_report(self, data: Dict[str, Any], query: str, format: str = "json") -> Dict[str, Any]:
-        """Generate a complete report with analysis and visualizations"""
+    async def generate_report(self, data: Dict[str, Any], format: str = "json") -> Union[Dict[str, Any], bytes]:
+        """Generate a report in the specified format"""
         try:
-            # Determine data type
-            data_type = self._determine_data_type(data)
-            
-            # Generate analysis
-            analysis = await self._generate_analysis(data, query)
-            
-            # Generate visualizations
-            visualizations = []
-            if data_type:
-                viz_func = self.viz_templates.get(data_type)
-                if viz_func:
-                    viz_data = viz_func(data)
-                    visualizations.append(self._create_plotly_figure(viz_data, data_type))
-
-            # Create report content
-            report_content = {
-                "status": "success",
-                "data_type": data_type,
-                "analysis": analysis,
-                "visualizations": visualizations,
-                "metadata": self._generate_metadata(data)
-            }
-
-            # Format report based on requested format
-            if format == "pdf":
-                content = self._generate_pdf_report(report_content)
+            if format == "json":
                 return {
                     "status": "success",
-                    "format": format,
-                    "content": base64.b64encode(content).decode()
+                    "data": data,
+                    "metadata": {
+                        "generated_at": datetime.now().isoformat(),
+                        "format": format
+                    }
                 }
+            elif format == "pdf":
+                template = self.env.get_template('report_template.html')
+                html_content = template.render(
+                    report=data,
+                    dark_mode=True,
+                    timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                )
+                
+                config = pdfkit.configuration(wkhtmltopdf=self.wkhtmltopdf_path)
+                pdf_content = pdfkit.from_string(
+                    html_content,
+                    False,
+                    options=self.pdf_options,
+                    configuration=config
+                )
+                return pdf_content
             elif format == "html":
-                content = self._generate_html_report(report_content)
-                return {
-                    "status": "success",
-                    "format": format,
-                    "content": content
-                }
+                template = self.env.get_template('report_template.html')
+                return template.render(
+                    report=data,
+                    dark_mode=True,
+                    timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                ).encode('utf-8')
             else:
-                return report_content
-
+                raise ValueError(f"Unsupported format: {format}")
+                
         except Exception as e:
             self.logger.error(f"Report generation failed: {str(e)}")
-            raise ValueError(f"Report generation failed: {str(e)}")
+            raise ReportGenerationError(f"Failed to generate {format} report: {str(e)}")
 
     def _generate_pdf_report(self, report_content: Dict[str, Any]) -> bytes:
         """Generate PDF report using report content"""
         try:
-            # Create HTML template
-            template = self._create_report_template(report_content)
+            # Load and render template
+            template = self.env.get_template('report_template.html')
+            html_content = template.render(
+                report=report_content,
+                dark_mode=True,
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+
+            # Configure pdfkit with wkhtmltopdf path
+            config = pdfkit.configuration(wkhtmltopdf=self.wkhtmltopdf_path)
             
-            # Convert HTML to PDF using pdfkit
-            pdf_options = {
-                'page-size': 'A4',
-                'margin-top': '0.75in',
-                'margin-right': '0.75in',
-                'margin-bottom': '0.75in',
-                'margin-left': '0.75in',
-                'encoding': "UTF-8"
-            }
-            return pdfkit.from_string(template, False, options=pdf_options)
+            # Generate PDF
+            pdf_content = pdfkit.from_string(
+                html_content,
+                False,  # Don't save to file, return bytes
+                options=self.pdf_options,
+                configuration=config
+            )
+            return pdf_content
         except Exception as e:
             raise ValueError(f"PDF generation failed: {str(e)}")
 

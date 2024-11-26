@@ -8,18 +8,28 @@ import Loading from '@/components/Loading';
 import AnalysisDisplay from '@/components/AnalysisDisplay';
 import DataVisualization from '@/components/DataVisualization';
 import { EnhancedReport } from '@/types/report';
-
-type ReportFormat = 'json' | 'html' | 'pdf';
+import ReportExportOptions from '@/components/ReportExportOptions';
+import { ReportGenerationOptions } from '@/types/report';
+import { ReportFormat } from '@/types/report';
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
-  const [selectedFormat, setSelectedFormat] = useState<ReportFormat>('json');
   const [query, setQuery] = useState('');
   const [report, setReport] = useState<EnhancedReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
+  const [exportOptions, setExportOptions] = useState<ReportGenerationOptions>({
+    format: 'json' as ReportFormat,
+    includeVisualizations: true,
+    includeTables: true,
+    customizations: {
+      theme: 'dark',
+      fontSize: 12,
+      colors: ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+    }
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -38,13 +48,25 @@ export default function Home() {
     
     try {
       const response = await apiService.uploadFile(file);
+      const processedData = response.processed_data;
+      
+      // Ensure data is an array
+      const dataArray = Array.isArray(processedData.data) 
+        ? processedData.data 
+        : [processedData.data];
+
       const newDataSource: DataSource = {
         id: crypto.randomUUID(),
         name: file.name,
         type: 'file',
         data: {
-          ...response.processed_data,
-          data: response.processed_data.data.map(item => {
+          type: processedData.type,
+          data_type: processedData.data_type,
+          data: dataArray.map(item => {
+            if (typeof item !== 'object' || item === null) {
+              return { value: item };
+            }
+            
             const typedItem: Record<string, string | number | boolean | null> = {};
             Object.entries(item).forEach(([key, value]) => {
               if (value === undefined) {
@@ -61,7 +83,17 @@ export default function Home() {
               }
             });
             return typedItem;
-          })
+          }),
+          metadata: {
+            date_columns: processedData.metadata?.date_columns || [],
+            numeric_columns: processedData.metadata?.numeric_columns || [],
+            categorical_columns: processedData.metadata?.categorical_columns || [],
+            statistics: {
+              row_count: processedData.metadata?.rows || 0,
+              column_count: processedData.metadata?.columns?.length || 0,
+              missing_values: processedData.metadata?.missing_values || {}
+            }
+          }
         }
       };
       setDataSources(prev => [...prev, newDataSource]);
@@ -78,33 +110,55 @@ export default function Home() {
 
     try {
       setLoading(true);
+      setError('');
+
+      const reportData = {
+        ...dataSources[0].data,
+        data: Array.isArray(dataSources[0].data.data) 
+          ? dataSources[0].data.data 
+          : [dataSources[0].data.data]
+      };
+
       const response = await apiService.generateReport(
-        Array.isArray(dataSources[0].data.data) 
-          ? Object.fromEntries(dataSources[0].data.data.map((item, index) => [index, item]))
-          : dataSources[0].data.data,
+        reportData as Record<string, unknown>,
         query,
-        selectedFormat
+        exportOptions.format,
+        {
+          includeVisualizations: exportOptions.includeVisualizations,
+          includeTables: exportOptions.includeTables,
+          customizations: exportOptions.customizations
+        }
       );
 
-      if (selectedFormat === 'pdf') {
-        // Handle PDF download
-        const blob = new Blob([response as Blob], { type: 'application/pdf' });
+      if (exportOptions.format === 'json') {
+        if (!response || typeof response !== 'object') {
+          throw new Error('Invalid response format');
+        }
+        setReport(response as EnhancedReport);
+      } else {
+        // Handle PDF/HTML download
+        const blob = response as Blob;
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `report_${Date.now()}.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        
+        if (exportOptions.format === 'pdf') {
+          link.download = `report_${Date.now()}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } else {
+          window.open(url, '_blank');
+        }
+        
         window.URL.revokeObjectURL(url);
-        setError('');
-      } else {
-        // Handle JSON response
-        setReport(response as EnhancedReport);
-        setError('');
       }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to generate report');
+    } catch (err) {
+      console.error('Report generation error:', err);
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'Failed to generate report. Please try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -284,119 +338,115 @@ export default function Home() {
 
       {/* Report Generation Modal */}
       {showReportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl">
-            <div className="flex justify-between items-center mb-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111827] rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b border-gray-700">
               <h3 className="text-xl font-semibold text-white">Generate Report</h3>
               <button 
                 onClick={() => setShowReportModal(false)}
                 className="text-gray-400 hover:text-white"
                 aria-label="Close modal"
-                title="Close modal"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
 
-            <div className="space-y-4">
-              {/* File Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Upload Data File
-                </label>
-                <div className="bg-gray-700 rounded-lg p-4 border-2 border-dashed border-gray-600 hover:border-blue-500 transition-colors">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                      </svg>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-gray-300">Drag and drop your file here, or click to browse</p>
-                      <p className="text-sm text-gray-400 mt-1">Supported file types:</p>
-                      <div className="flex flex-wrap justify-center gap-2 mt-2">
-                        <span className="px-2 py-1 bg-gray-600 rounded-md text-xs text-gray-300">
-                          CSV (.csv)
-                        </span>
-                        <span className="px-2 py-1 bg-gray-600 rounded-md text-xs text-gray-300">
-                          Excel (.xlsx, .xls)
-                        </span>
-                        <span className="px-2 py-1 bg-gray-600 rounded-md text-xs text-gray-300">
-                          JSON (.json)
-                        </span>
-                        <span className="px-2 py-1 bg-gray-600 rounded-md text-xs text-gray-300">
-                          Text (.txt)
-                        </span>
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-4">
+                {/* File Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Upload Data File
+                  </label>
+                  <div className="bg-gray-800 rounded-lg p-4 border-2 border-dashed border-gray-600 hover:border-blue-500 transition-colors">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
                       </div>
-                      <p className="text-xs text-gray-400 mt-2">
-                        Maximum file size: 10MB
-                      </p>
+                      <div className="text-center">
+                        <p className="text-gray-300">Drag and drop your file here, or click to browse</p>
+                        <p className="text-sm text-gray-400 mt-1">Supported file types:</p>
+                        <div className="flex flex-wrap justify-center gap-2 mt-2">
+                          <span className="px-2 py-1 bg-gray-600 rounded-md text-xs text-gray-300">
+                            CSV (.csv)
+                          </span>
+                          <span className="px-2 py-1 bg-gray-600 rounded-md text-xs text-gray-300">
+                            Excel (.xlsx, .xls)
+                          </span>
+                          <span className="px-2 py-1 bg-gray-600 rounded-md text-xs text-gray-300">
+                            JSON (.json)
+                          </span>
+                          <span className="px-2 py-1 bg-gray-600 rounded-md text-xs text-gray-300">
+                            Text (.txt)
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">
+                          Maximum file size: 10MB
+                        </p>
+                      </div>
+                      <input
+                        type="file"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        id="file-upload"
+                        accept=".csv,.xlsx,.xls,.json,.txt"
+                        title="Upload data file"
+                        aria-label="Upload data file"
+                      />
+                      <label
+                        htmlFor="file-upload"
+                        className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
+                      >
+                        Choose File
+                      </label>
                     </div>
-                    <input
-                      type="file"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      id="file-upload"
-                      accept=".csv,.xlsx,.xls,.json,.txt"
-                      title="Upload data file"
-                      aria-label="Upload data file"
-                    />
-                    <label
-                      htmlFor="file-upload"
-                      className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
-                    >
-                      Choose File
-                    </label>
+                    {dataSources.length > 0 && (
+                      <div className="mt-4 p-3 bg-gray-600 rounded-lg">
+                        <p className="text-sm text-gray-300">
+                          Current file: {dataSources[dataSources.length - 1].name}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  {dataSources.length > 0 && (
-                    <div className="mt-4 p-3 bg-gray-600 rounded-lg">
-                      <p className="text-sm text-gray-300">
-                        Current file: {dataSources[dataSources.length - 1].name}
-                      </p>
-                    </div>
-                  )}
                 </div>
-                <div className="mt-2">
-                  
-                 
-                </div>
-              </div>
 
-              {/* Query Input */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Analysis Query
-                </label>
-                <textarea
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={4}
-                  placeholder="Describe the analysis you want to perform..."
+                {/* Query Input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Analysis Query
+                  </label>
+                  <textarea
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={4}
+                    placeholder="Describe the analysis you want to perform..."
+                  />
+                </div>
+
+                {/* Export Options */}
+                <ReportExportOptions
+                  options={exportOptions}
+                  onChange={setExportOptions}
                 />
               </div>
+            </div>
 
-              {/* Format Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Output Format
-                </label>
-                <select
-                  value={selectedFormat}
-                  onChange={(e) => setSelectedFormat(e.target.value as ReportFormat)}
-                  className="w-full px-3 py-2 bg-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  aria-label="Select output format"
-                  title="Select output format"
-                >
-                  <option value="json">JSON</option>
-                  <option value="html">HTML</option>
-                  <option value="pdf">PDF</option>
-                </select>
-              </div>
-
-              {/* Generate Button */}
+            <div className="p-6 border-t border-gray-700">
               <button
                 onClick={generateReport}
                 disabled={loading || !dataSources.length || !query}

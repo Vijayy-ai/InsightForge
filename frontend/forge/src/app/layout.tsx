@@ -1,4 +1,7 @@
+import ErrorBoundary from '@/components/ErrorBoundary';
 import type { Metadata } from "next";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,9 +17,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <div className="min-h-screen bg-background">
-          {children}
-        </div>
+        <ErrorBoundary>
+          <div className="min-h-screen bg-background">
+            {children}
+          </div>
+          <ToastContainer />
+        </ErrorBoundary>
       </body>
     </html>
   );

@@ -16,10 +16,10 @@ interface AnalysisDisplayProps {
     insights: {
       summary_stats: Record<string, StatisticalSummary>;
     };
-    statistical_analysis?: {
-      time_series?: TimeSeriesAnalysis;
-      numerical?: NumericalAnalysis;
-      categorical?: CategoricalAnalysis;
+    statistical_analysis: {
+      time_series: TimeSeriesAnalysis | null;
+      numerical: NumericalAnalysis | null;
+      categorical: CategoricalAnalysis | null;
     };
     data_quality: DataQuality;
   };
@@ -45,29 +45,40 @@ interface TrendData {
 }
 
 export default function AnalysisDisplay({ analysis, dataType }: AnalysisDisplayProps) {
+  const llmAnalysis = analysis?.llm_analysis || 'No analysis available';
+  const insights = analysis?.insights?.summary_stats || {};
+  const statisticalAnalysis = analysis?.statistical_analysis || {};
+  const dataQuality = analysis?.data_quality || {
+    completeness: {},
+    accuracy: {},
+    consistency: {}
+  };
+
   const renderStatisticalAnalysis = () => {
-    if (!analysis.statistical_analysis) return null;
+    if (!statisticalAnalysis) return null;
     
     switch (dataType) {
       case 'time_series': {
-        const timeSeriesAnalysis = analysis.statistical_analysis as TimeSeriesAnalysis;
+        const timeSeriesData = statisticalAnalysis.time_series;
+        if (!timeSeriesData) return null;
+        
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Time Series Analysis</h3>
-            {Object.entries(timeSeriesAnalysis.trends || {}).map(([key, value]) => (
+            {timeSeriesData.trends && Object.entries(timeSeriesData.trends).map(([key, value]) => (
               <div key={key} className="bg-white p-4 rounded-lg shadow">
                 <h4 className="font-medium text-gray-700">{key}</h4>
                 <div className="grid grid-cols-2 gap-4 mt-2">
                   <div>
                     <p className="text-sm text-gray-600">Mean</p>
-                    <p className="font-medium">{(value as TrendData).mean.toFixed(2)}</p>
+                    <p className="font-medium">{(value as TrendData).mean?.toFixed(2) || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Trend</p>
-                    <p className="font-medium capitalize">{(value as TrendData).trend}</p>
+                    <p className="font-medium capitalize">{(value as TrendData).trend || 'N/A'}</p>
                   </div>
                 </div>
-                {renderTrendPlot(timeSeriesAnalysis.trends)}
+                {renderTrendPlot(timeSeriesData.trends)}
               </div>
             ))}
           </div>
@@ -75,11 +86,13 @@ export default function AnalysisDisplay({ analysis, dataType }: AnalysisDisplayP
       }
 
       case 'numerical': {
-        const numericalAnalysis = analysis.statistical_analysis as NumericalAnalysis;
+        const numericalData = statisticalAnalysis.numerical;
+        if (!numericalData) return null;
+        
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Numerical Analysis</h3>
-            {Object.entries(numericalAnalysis || {}).map(([key, value]) => (
+            {Object.entries(numericalData || {}).map(([key, value]) => (
               <div key={key} className="bg-white p-4 rounded-lg shadow">
                 <h4 className="font-medium text-gray-700">{key}</h4>
                 <div className="grid grid-cols-2 gap-4 mt-2">
@@ -99,11 +112,13 @@ export default function AnalysisDisplay({ analysis, dataType }: AnalysisDisplayP
       }
 
       case 'categorical': {
-        const categoricalAnalysis = analysis.statistical_analysis as CategoricalAnalysis;
+        const categoricalData = statisticalAnalysis.categorical;
+        if (!categoricalData) return null;
+        
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Categorical Analysis</h3>
-            {Object.entries(categoricalAnalysis || {}).map(([key, frequencies]) => (
+            {Object.entries(categoricalData || {}).map(([key, frequencies]) => (
               <div key={key} className="bg-white p-4 rounded-lg shadow">
                 <h4 className="font-medium text-gray-700">{key}</h4>
                 <div className="mt-2">
@@ -157,7 +172,7 @@ export default function AnalysisDisplay({ analysis, dataType }: AnalysisDisplayP
         <div className="prose max-w-none" role="region" aria-labelledby="analysis-results">
           <div className="mb-6">
             <h3 className="text-lg font-semibold">LLM Analysis</h3>
-            <p className="text-gray-700 whitespace-pre-line">{analysis.llm_analysis}</p>
+            <p className="text-gray-700 whitespace-pre-line">{llmAnalysis}</p>
           </div>
           
           <div className="mb-6">
@@ -167,7 +182,7 @@ export default function AnalysisDisplay({ analysis, dataType }: AnalysisDisplayP
           <div className="mb-6">
             <h3 className="text-lg font-semibold">Key Insights</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(analysis.insights.summary_stats).map(([key, value]) => (
+              {Object.entries(insights).map(([key, value]) => (
                 <div 
                   key={key} 
                   className="bg-gray-50 p-4 rounded-lg"
@@ -185,7 +200,7 @@ export default function AnalysisDisplay({ analysis, dataType }: AnalysisDisplayP
         </div>
       </div>
 
-      <DataQualityDisplay dataQuality={analysis.data_quality} />
+      <DataQualityDisplay dataQuality={dataQuality} />
     </div>
   );
 } 

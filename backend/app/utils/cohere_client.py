@@ -1,5 +1,5 @@
 import cohere
-from .config import get_settings
+from ..core.config import get_settings
 import asyncio
 from typing import Dict, Any
 
@@ -17,7 +17,7 @@ class AsyncCohereClient:
                 None, 
                 lambda: self.client.generate(
                     prompt=prompt,
-                    model='command',  # Specify the model explicitly
+                    model='command',
                     max_tokens=1000,
                     temperature=0.7,
                     k=0,

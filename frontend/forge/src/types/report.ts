@@ -1,4 +1,7 @@
 import { DataSource } from '@/types/common';
+import { PlotlyData, PlotlyLayout } from 'plotly.js';
+
+export type ReportFormat = 'json' | 'pdf' | 'html';
 
 export interface DataQualityStats {
   unique_count: number;
@@ -88,60 +91,58 @@ export interface AnalysisResult {
   data_quality: DataQuality;
 }
 
-export interface PlotlyData {
-  type?: 'scatter' | 'bar' | 'box' | 'line' | 'pie' | 'heatmap';
-  x?: (string | number)[] | string[] | number[];
-  y?: (string | number)[] | string[] | number[];
-  mode?: 'lines' | 'markers' | 'lines+markers';
-  name?: string;
-  line?: {
-    shape?: 'linear' | 'spline';
-    width?: number;
-  };
-  [key: string]: unknown;
-}
-
-export interface PlotlyLayout {
-  title?: string;
-  width?: number;
-  height?: number;
-  [key: string]: unknown;
-}
-
-export interface Visualization {
-  type: 'line' | 'bar' | 'scatter' | 'pie' | 'heatmap';
+export interface VisualizationResponse {
+  type: string;
   data: PlotlyData[];
-  layout: PlotlyLayout;
-  config?: Record<string, unknown>;
+  layout: PlotlyLayout & {
+    template?: string;
+    paper_bgcolor?: string;
+    plot_bgcolor?: string;
+  };
+}
+
+export interface StatisticalAnalysis {
+  time_series: TimeSeriesAnalysis | null;
+  numerical: NumericalAnalysis | null;
+  categorical: CategoricalAnalysis | null;
+}
+
+export interface AnalysisInsights {
+  summary_stats: Record<string, StatisticalSummary>;
+  trends?: Record<string, TrendAnalysis>;
+  correlations?: Record<string, number>;
 }
 
 export interface EnhancedReport {
   id: string;
   data_type: 'time_series' | 'numerical' | 'categorical' | 'mixed';
-  analysis: AnalysisResult;
-  visualizations: {
-    interactive: string;
-    static: string[];
-    default_type: string;
+  analysis: {
+    llm_analysis: string;
+    insights: AnalysisInsights;
+    statistical_analysis: StatisticalAnalysis;
+    data_quality: DataQuality;
   };
-  data_quality: DataQuality;
+  visualizations: VisualizationResponse[];
   metadata: {
     created_at: string;
     updated_at: string;
-    source: DataSource;
+    source: {
+      type: string;
+      name: string;
+    };
     rows: number;
     columns: number;
   };
 }
 
 export interface ReportGenerationOptions {
-  format: 'json' | 'pdf' | 'html';
+  format: ReportFormat;
   includeVisualizations: boolean;
   includeTables: boolean;
-  customizations?: {
-    theme?: 'light' | 'dark';
-    colors?: string[];
-    fontSize?: number;
+  customizations: {
+    theme: 'light' | 'dark';
+    fontSize: number;
+    colors: string[];
   };
 }
 

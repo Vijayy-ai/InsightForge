@@ -4,110 +4,11 @@ import { apiService } from '@/services/api';
 import Loading from './Loading';
 import { DatabaseConnectionParams } from '@/types/database';
 import { ProcessedData } from '@/types/common';
+import { MongoDBQueryBuilder } from './MongoDBQueryBuilder';
 
 interface DatabaseConnectorProps {
   onConnect: (data: ProcessedData, sourceType: string) => void;
 }
-
-interface MongoDBQueryBuilderProps {
-  onChange: (query: string) => void;
-}
-
-// MongoDB query helper component
-const MongoDBQueryBuilder = ({ onChange }: MongoDBQueryBuilderProps) => {
-  const [queryType, setQueryType] = useState<'find' | 'aggregate'>('find');
-  const [collection, setCollection] = useState('');
-  const [filter, setFilter] = useState('{}');
-  const [pipeline, setPipeline] = useState('[]');
-
-  useEffect(() => {
-    if (queryType === 'find') {
-      const query = {
-        collection,
-        filter: JSON.parse(filter || '{}'),
-      };
-      onChange(JSON.stringify(query, null, 2));
-    } else {
-      try {
-        const pipelineArray = JSON.parse(pipeline || '[]');
-        if (collection) {
-          pipelineArray.unshift({ $collection: collection });
-        }
-        onChange(JSON.stringify(pipelineArray, null, 2));
-      } catch (e) {
-        console.error('Invalid pipeline JSON:', e);
-      }
-    }
-  }, [queryType, collection, filter, pipeline, onChange]);
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <label htmlFor="queryType" className="block text-sm font-medium text-gray-700">
-          Query Type
-        </label>
-        <select
-          id="queryType"
-          value={queryType}
-          onChange={(e) => setQueryType(e.target.value as 'find' | 'aggregate')}
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          aria-label="Select query type"
-          title="Select query type"
-        >
-          <option value="find">Find Query</option>
-          <option value="aggregate">Aggregation Pipeline</option>
-        </select>
-      </div>
-
-      <div>
-        <label htmlFor="collection" className="block text-sm font-medium text-gray-700">
-          Collection Name
-        </label>
-        <input
-          id="collection"
-          type="text"
-          value={collection}
-          onChange={(e) => setCollection(e.target.value)}
-          placeholder="Collection name"
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          aria-label="Enter collection name"
-        />
-      </div>
-
-      {queryType === 'find' ? (
-        <div>
-          <label htmlFor="filter" className="block text-sm font-medium text-gray-700">
-            Filter Query
-          </label>
-          <textarea
-            id="filter"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Filter (JSON)"
-            rows={4}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            aria-label="Enter filter query in JSON format"
-          />
-        </div>
-      ) : (
-        <div>
-          <label htmlFor="pipeline" className="block text-sm font-medium text-gray-700">
-            Aggregation Pipeline
-          </label>
-          <textarea
-            id="pipeline"
-            value={pipeline}
-            onChange={(e) => setPipeline(e.target.value)}
-            placeholder="Aggregation Pipeline (JSON Array)"
-            rows={4}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            aria-label="Enter aggregation pipeline in JSON array format"
-          />
-        </div>
-      )}
-    </div>
-  );
-};
 
 export default function DatabaseConnector({ onConnect }: DatabaseConnectorProps) {
   const [formData, setFormData] = useState<DatabaseConnectionParams>({

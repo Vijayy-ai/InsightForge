@@ -5,7 +5,7 @@ from ..schemas.database import DatabaseConnectionRequest, DatabaseResponse
 from ..core.config import get_settings
 from ..utils.data_processor import DataProcessor
 
-router = APIRouter(prefix="/api/database", tags=["database"])
+router = APIRouter(tags=["database"])
 settings = get_settings()
 
 @router.post("/connect", response_model=DatabaseResponse)

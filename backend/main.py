@@ -1,60 +1,42 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.routers import upload, database, report
-from app.core.error_handler import register_error_handlers
 import logging
-
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
 app = FastAPI(
-    title="Data Analysis API",
-    description="API for data analysis and visualization",
+    title="InsightForge API",
+    description="API for data analysis and report generation",
     version="1.0.0"
 )
 
-# Add CORS middleware
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins during development
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Register routers with proper prefixes
-app.include_router(upload.router, prefix="/api")
-app.include_router(database.router, prefix="/api")
-app.include_router(report.router, prefix="/api")
+# Create API router without prefix
+api_router = APIRouter()
 
-# Register error handlers
-register_error_handlers(app)
+# Include route modules without prefix
+api_router.include_router(upload.router)
+api_router.include_router(database.router)
+api_router.include_router(report.router)
 
-@app.get("/")
-async def root():
-    return {
-        "status": "ok",
-        "message": "API is running",
-        "version": "1.0.0"
-    }
-
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "debug": settings.DEBUG,
-        "allowed_hosts": settings.allowed_hosts_list
-    }
+# Mount the API router with the /api prefix
+app.include_router(api_router, prefix="/api")
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "main:app",
+        app,  # Use the app directly
         host="0.0.0.0",
         port=8000,
-        reload=True if settings.DEBUG else False
-    ) 
+        reload=True
+    )
