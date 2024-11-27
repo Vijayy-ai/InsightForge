@@ -1,5 +1,5 @@
 import { DataSource } from '@/types/common';
-import { PlotlyData, PlotlyLayout } from 'plotly.js';
+import type { Data as PlotlyData, Layout as PlotlyLayout } from 'plotly.js';
 
 export type ReportFormat = 'json' | 'pdf' | 'html';
 
@@ -93,11 +93,12 @@ export interface AnalysisResult {
 
 export interface VisualizationResponse {
   type: string;
-  data: PlotlyData[];
-  layout: PlotlyLayout & {
-    template?: string;
-    paper_bgcolor?: string;
-    plot_bgcolor?: string;
+  data: Array<Partial<PlotlyData>>;
+  layout: Partial<PlotlyLayout>;
+  config?: {
+    responsive?: boolean;
+    displayModeBar?: boolean;
+    [key: string]: any;
   };
 }
 
@@ -136,13 +137,13 @@ export interface EnhancedReport {
 }
 
 export interface ReportGenerationOptions {
-  format: ReportFormat;
+  format: 'json' | 'pdf' | 'html';
   includeVisualizations: boolean;
   includeTables: boolean;
-  customizations: {
-    theme: 'light' | 'dark';
-    fontSize: number;
-    colors: string[];
+  customizations?: {
+    theme?: 'light' | 'dark';
+    fontSize?: number;
+    colors?: string[];
   };
 }
 

@@ -1,19 +1,27 @@
-import type { Layout, PlotData } from 'plotly.js';
+import type { Data, Layout, Config } from 'plotly.js';
 
-export type ChartType = 'scatter' | 'bar' | 'box' | 'line' | 'pie' | 'heatmap';
+declare module 'react-plotly.js' {
+  import React from 'react';
 
-export interface PlotlyData extends Partial<PlotData> {
-  name?: string;
-  type?: ChartType;
-  line?: {
-    shape?: string;
-    width?: number;
-    [key: string]: unknown;
-  };
-}
+  interface PlotParams {
+    data: Array<Partial<Data>>;
+    layout?: Partial<Layout>;
+    config?: Partial<Config>;
+    frames?: Array<Partial<Data>>;
+    useResizeHandler?: boolean;
+    style?: React.CSSProperties;
+    className?: string;
+    onInitialized?: (figure: Figure) => void;
+    onUpdate?: (figure: Figure) => void;
+    onPurge?: () => void;
+    onError?: (err: Error) => void;
+  }
 
-export interface PlotlyLayout extends Partial<Layout> {
-  template?: string;
-  paper_bgcolor?: string;
-  plot_bgcolor?: string;
+  interface Figure {
+    data: Array<Partial<Data>>;
+    layout: Partial<Layout>;
+  }
+
+  const Plot: React.ComponentType<PlotParams>;
+  export default Plot;
 } 

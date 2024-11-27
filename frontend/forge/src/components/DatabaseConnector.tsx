@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FiAlertCircle } from 'react-icons/fi';
 import { apiService } from '@/services/api';
 import Loading from './Loading';
 import { DatabaseConnectionParams } from '@/types/database';
 import { ProcessedData } from '@/types/common';
-import { MongoDBQueryBuilder } from './MongoDBQueryBuilder';
+// import { MongoDBQueryBuilder } from './MongoDBQueryBuilder';
 
 interface DatabaseConnectorProps {
   onConnect: (data: ProcessedData, sourceType: string) => void;

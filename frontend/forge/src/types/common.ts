@@ -1,3 +1,22 @@
+export interface CommonDataTypes {
+  string: string;
+  number: number;
+  boolean: boolean;
+  null: null;
+  undefined: undefined;
+  object: object;
+  array: any[];
+}
+
+export type BasicDataValue = CommonDataTypes[keyof CommonDataTypes];
+export type DataValue = string | number | boolean | null;
+export type DataRecord = Record<string, DataValue>;
+
+export interface ProcessedDataResponse {
+  processed_data: ProcessedData;
+  [key: string]: any;
+}
+
 export interface ProcessedData {
   type: 'structured' | 'unstructured';
   data: Record<string, unknown>[] | Record<string, unknown>;
@@ -35,6 +54,4 @@ export interface ErrorResponse {
   code: string;
   details?: Record<string, unknown>;
 }
-
-export type DataValue = string | number | boolean | null;
-export type DataRecord = Record<string, DataValue>; 
+  

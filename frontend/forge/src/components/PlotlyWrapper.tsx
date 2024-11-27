@@ -1,18 +1,30 @@
 import dynamic from 'next/dynamic';
-import { PlotParams } from 'react-plotly.js';
+import type { Data, Layout, Config } from 'plotly.js';
 
 // Dynamic import with no SSR to avoid plotly.js issues with Next.js
-const Plot = dynamic(() => import('react-plotly.js'), {
+const Plot = dynamic(() => import('react-plotly.js').then(mod => {
+  const Plot = mod.default;
+  return Plot as React.ComponentType<PlotParams>;
+}), {
   ssr: false,
   loading: () => <div>Loading Plot...</div>
 });
 
-interface PlotlyWrapperProps extends Partial<PlotParams> {
-  data: any[];
-  layout?: Partial<Plotly.Layout>;
+interface PlotParams {
+  data: Array<Partial<Data>>;
+  layout?: Partial<Layout>;
+  config?: Partial<Config>;
+  useResizeHandler?: boolean;
+  style?: React.CSSProperties;
 }
 
-const PlotlyWrapper: React.FC<PlotlyWrapperProps> = ({ data, layout, ...rest }) => {
+interface PlotlyWrapperProps {
+  data: Array<Partial<Data>>;
+  layout?: Partial<Layout>;
+  config?: Partial<Config>;
+}
+
+const PlotlyWrapper: React.FC<PlotlyWrapperProps> = ({ data, layout, config }) => {
   return (
     <div className="w-full h-full">
       <Plot
@@ -22,9 +34,13 @@ const PlotlyWrapper: React.FC<PlotlyWrapperProps> = ({ data, layout, ...rest }) 
           margin: { l: 50, r: 50, t: 50, b: 50 },
           ...layout
         }}
+        config={{
+          responsive: true,
+          displayModeBar: true,
+          ...config
+        }}
         useResizeHandler={true}
         style={{ width: "100%", height: "100%" }}
-        {...rest}
       />
     </div>
   );

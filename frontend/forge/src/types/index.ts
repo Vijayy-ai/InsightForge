@@ -30,6 +30,12 @@ export interface ProcessedData {
     dtypes?: Record<string, string>;
     processed_at?: string;
   };
+  processed_data?: {
+    type: string;
+    data_type?: string;
+    data: any[];
+    metadata?: any;
+  };
 }
 
 export interface DataSource {

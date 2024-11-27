@@ -89,10 +89,14 @@ export default function Home() {
             numeric_columns: processedData.metadata?.numeric_columns || [],
             categorical_columns: processedData.metadata?.categorical_columns || [],
             statistics: {
-              row_count: processedData.metadata?.rows || 0,
-              column_count: processedData.metadata?.columns?.length || 0,
-              missing_values: processedData.metadata?.missing_values || {}
-            }
+              row_count: processedData.metadata?.statistics?.row_count || 0,
+              column_count: processedData.metadata?.statistics?.column_count || 0,
+              missing_values: processedData.metadata?.statistics?.missing_values || {}
+            },
+            columns: processedData.metadata?.columns || [],
+            rows: processedData.metadata?.rows || 0,
+            dtypes: processedData.metadata?.dtypes || {},
+            processed_at: processedData.metadata?.processed_at
           }
         }
       };
@@ -124,9 +128,11 @@ export default function Home() {
         query,
         exportOptions.format,
         {
-          includeVisualizations: exportOptions.includeVisualizations,
-          includeTables: exportOptions.includeTables,
-          customizations: exportOptions.customizations
+          cleanMissingValues: exportOptions.includeVisualizations,
+          removeOutliers: false,
+          normalizeData: false,
+          aggregationType: 'mean',
+          timeframe: 'daily'
         }
       );
 

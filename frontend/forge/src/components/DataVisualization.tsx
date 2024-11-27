@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { EnhancedReport } from '@/types/report';
+import { EnhancedReport, VisualizationResponse } from '@/types/report';
 import PlotlyWrapper from './PlotlyWrapper';
 import ExportButton from './ExportButton';
+import type { Layout } from 'plotly.js';
 
 interface DataVisualizationProps {
   report: EnhancedReport;
@@ -30,7 +31,7 @@ export default function DataVisualization({ report }: DataVisualizationProps) {
       )}
 
       <div className="space-y-8">
-        {report.visualizations.map((visualization, index) => (
+        {report.visualizations.map((visualization: VisualizationResponse, index: number) => (
           <div key={index} className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">
@@ -57,7 +58,8 @@ export default function DataVisualization({ report }: DataVisualizationProps) {
                 }}
                 config={{
                   responsive: true,
-                  displayModeBar: true
+                  displayModeBar: true,
+                  ...visualization.config
                 }}
               />
             </div>

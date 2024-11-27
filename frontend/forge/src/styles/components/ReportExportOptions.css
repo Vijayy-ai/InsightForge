@@ -1,0 +1,23 @@
+.export-options {
+  @apply space-y-4 p-4 bg-gray-800 rounded-lg border border-gray-700;
+}
+
+.export-options__title {
+  @apply text-lg font-semibold text-gray-200;
+}
+
+.export-options__select {
+  @apply mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white shadow-sm focus:ring-blue-500 focus:border-blue-500;
+}
+
+.export-options__input {
+  @apply mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white shadow-sm focus:ring-blue-500 focus:border-blue-500;
+}
+
+.export-options__checkbox {
+  @apply rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500;
+}
+
+.export-options__color-button {
+  @apply w-8 h-8 rounded-full border-2 border-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+} 

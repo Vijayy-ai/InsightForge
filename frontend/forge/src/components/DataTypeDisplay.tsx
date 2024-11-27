@@ -102,7 +102,7 @@ export default function DataTypeDisplay({
                 <span className="text-sm text-gray-600">Confidence:</span>
                 <div className="flex-1 h-2 bg-gray-200 rounded-full">
                   <div 
-                    className="h-full bg-blue-600 rounded-full"
+                    className={`h-full confidenceBar`}
                     style={{ width: `${confidence}%` }}
                   />
                 </div>

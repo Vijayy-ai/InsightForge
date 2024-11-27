@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FiAlertCircle } from 'react-icons/fi';
 import Loading from './Loading';
 import { ProcessedData } from '@/types/common';
+import { handleAPIError } from '@/utils/errorHandler';
 
 interface APIIntegrationProps {
   onFetch: (data: ProcessedData, sourceType: string) => void;
@@ -39,25 +40,41 @@ export default function APIIntegration({ onFetch }: APIIntegrationProps): JSX.El
     setError(null);
 
     try {
-      const headers = formData.headers ? JSON.parse(formData.headers) : {};
-      if (typeof headers !== 'object') throw new Error('Invalid headers format');
-      const body = formData.body ? JSON.parse(formData.body) : undefined;
+      let parsedHeaders: Record<string, string> = {};
+      let parsedBody: unknown;
+
+      try {
+        parsedHeaders = formData.headers ? JSON.parse(formData.headers) : {};
+        if (typeof parsedHeaders !== 'object' || parsedHeaders === null) {
+          throw new Error('Headers must be a valid JSON object');
+        }
+      } catch {
+        throw new Error('Invalid headers format: must be valid JSON');
+      }
+
+      if (formData.body) {
+        try {
+          parsedBody = JSON.parse(formData.body);
+        } catch {
+          throw new Error('Invalid body format: must be valid JSON');
+        }
+      }
 
       // Add authentication headers
       if (formData.authType === 'apiKey') {
-        headers['Authorization'] = `Bearer ${formData.apiKey}`;
+        parsedHeaders['Authorization'] = `Bearer ${formData.apiKey}`;
       } else if (formData.authType === 'basic') {
         const basicAuth = btoa(`${formData.username}:${formData.password}`);
-        headers['Authorization'] = `Basic ${basicAuth}`;
+        parsedHeaders['Authorization'] = `Basic ${basicAuth}`;
       }
 
       const response = await fetch(formData.url, {
         method: formData.method,
         headers: {
           'Content-Type': 'application/json',
-          ...headers,
+          ...parsedHeaders,
         },
-        body: formData.method !== 'GET' ? JSON.stringify(body) : undefined,
+        body: formData.method !== 'GET' ? JSON.stringify(parsedBody) : undefined,
       });
 
       if (!response.ok) {
@@ -65,12 +82,30 @@ export default function APIIntegration({ onFetch }: APIIntegrationProps): JSX.El
       }
 
       const data = await response.json();
-      onFetch(data as ProcessedData, 'api');
+      
+      // Type guard to ensure data matches ProcessedData interface
+      if (!isProcessedData(data)) {
+        throw new Error('Invalid response format from API');
+      }
+
+      onFetch(data, 'api');
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to fetch API data');
+      const apiError = handleAPIError(error);
+      setError(apiError.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Type guard function
+  const isProcessedData = (data: unknown): data is ProcessedData => {
+    const pd = data as ProcessedData;
+    return (
+      pd !== null &&
+      typeof pd === 'object' &&
+      typeof pd.type === 'string' &&
+      Array.isArray(pd.data)
+    );
   };
 
   return (
