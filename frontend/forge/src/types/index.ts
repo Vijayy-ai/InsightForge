@@ -25,6 +25,10 @@ export interface ProcessedData {
       column_count: number;
       missing_values: Record<string, number>;
     };
+    columns?: string[];
+    rows?: number;
+    dtypes?: Record<string, string>;
+    processed_at?: string;
   };
 }
 

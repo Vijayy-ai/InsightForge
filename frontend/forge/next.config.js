@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // Enable production optimizations
+    output: 'standalone',
     reactStrictMode: true,
     swcMinify: true,
   
