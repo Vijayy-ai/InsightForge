@@ -1,5 +1,5 @@
 import React from 'react';
-import { DataProcessingOptions } from '@/types/report';
+import type { DataProcessingOptions } from '@/types/report';
 
 interface Props {
   options: DataProcessingOptions;
